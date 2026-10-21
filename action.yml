@@ -1,0 +1,42 @@
+name: Anchored Scan
+description: Finds fixed numbers copied across files and generated files edited by hand, and comments on the pull request. Zero config.
+author: newcleardigital
+branding:
+  icon: anchor
+  color: blue
+inputs:
+  path:
+    description: Folder to scan, relative to the repository root.
+    default: "."
+  fail-on:
+    description: "auto = fail only when a check from anchor-core.json fails; never = report only; findings = fail on any finding."
+    default: auto
+  comment:
+    description: Post (and keep updating) one pull request comment with the report.
+    default: "true"
+  token:
+    description: Token used to read the pull request's files and to comment.
+    default: ${{ github.token }}
+outputs:
+  mode:
+    description: "zero (no anchor-core.json) or checks."
+    value: ${{ steps.scan.outputs.mode }}
+  copies:
+    description: Number of fixed values used in logic in more than one file.
+    value: ${{ steps.scan.outputs.copies }}
+  generated-edits:
+    description: Generated files edited in this pull request.
+    value: ${{ steps.scan.outputs.generated-edits }}
+  failed:
+    description: true when a check from anchor-core.json failed.
+    value: ${{ steps.scan.outputs.failed }}
+runs:
+  using: composite
+  steps:
+    - id: scan
+      shell: bash
+      env:
+        INPUT_TOKEN: ${{ inputs.token }}
+      run: |
+        PY="$(command -v python3 || command -v python)"
+        "$PY" "$GITHUB_ACTION_PATH/scan/scan.py" --path "${{ inputs.path }}" --fail-on "${{ inputs.fail-on }}" --comment "${{ inputs.comment }}"
