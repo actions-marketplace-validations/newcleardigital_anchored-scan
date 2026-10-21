@@ -265,6 +265,15 @@ def main():
         except (urllib.error.URLError, OSError) as e:
             print(f"::warning::Anchored Scan could not list the pull request's files: {e}", file=sys.stderr)
 
+    # The pull request lists paths from the repository root; the scan works relative to --path.
+    workspace = pathlib.Path(os.environ.get("GITHUB_WORKSPACE") or os.getcwd()).resolve()
+    try:
+        prefix = root.relative_to(workspace).as_posix()
+    except ValueError:
+        prefix = "."
+    if prefix != "." and not a.changed:
+        changed = [c[len(prefix) + 1:] for c in changed if c.startswith(prefix + "/")]
+
     configured = (root / C.CONFIG_NAME).is_file()
     if configured:
         cfg = C.load(root)
